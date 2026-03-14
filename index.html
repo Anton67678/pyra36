@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Пирамида · PYRA</title>
+    <style>
+        :root {
+            --bg-deep: #08100A;
+            --bg-medium: #111C13;
+            --gold: #C8A84B;
+            --gold-pale: #F5E4A8;
+            --cream: #F9F3E8;
+            --text-warm: #D4C9A8;
+            --red-card: #C0272D;
+        }
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            background: var(--bg-deep);
+            color: var(--cream);
+            font-family: 'DejaVu Sans', Arial, sans-serif;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            border-bottom: 2px solid var(--gold);
+        }
+        
+        .logo {
+            font-family: 'DejaVu Serif', serif;
+            font-size: 42px;
+            color: var(--gold);
+            letter-spacing: 8px;
+        }
+        
+        .game-container {
+            max-width: 900px;
+            margin: 0 auto;
+            position: relative;
+        }
+        
+        .pyramid-preview {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0;
+            margin: 30px 0;
+            padding: 20px;
+        }
+        
+        .pyramid-preview-row {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+            margin-top: -15px;
+        }
+        
+        .pyramid-preview-row:first-child {
+            margin-top: 0;
+        }
+        
+        .pyramid {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0;
+            margin: 30px 0;
+        }
+        
+        .pyramid-row {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+            margin-top: -15px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .pyramid-row:first-child {
+            margin-top: 0;
+        }
+        
+        .card {
+            width: 55px;
+            height: 77px;
+            background: var(--bg-medium);
+            border: 2px solid var(--gold);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            cursor: pointer;
+            transition: all 0.28s ease-in-out;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .card.flipped {
+            background: var(--cream);
+            color: var(--bg-deep);
+            z-index: 3;
+        }
+        
+        .card.red { color: var(--red-card); }
+        
+        .card.selected {
+            box-shadow: 0 0 20px var(--gold), 0 0 10px var(--gold);
+            transform: translateY(-5px);
+            z-index: 10;
+        }
+        
+        .card.matched {
+            opacity: 0;
+            transform: scale(0.5);
+        }
+        
+        .card.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        
+        .card-placeholder {
+            width: 55px;
+            height: 77px;
+            background: var(--bg-medium);
+            border: 2px solid var(--gold);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.6;
+        }
+        
+        .card-placeholder::after {
+            content: '';
+            width: 20px;
+            height: 20px;
+            background-image: 
+                linear-gradient(45deg, var(--gold) 1px, transparent 1px),
+                linear-gradient(-45deg, var(--gold) 1px, transparent 1px);
+            background-size: 6px 6px;
+            opacity: 0.5;
+        }
+        
+        .reserve-section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 50px;
+            margin: 30px 0;
+            padding: 0;
+            background: transparent;
+            border: none;
+            position: relative;
+        }
+        
+        .reserve-deck {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+        }
+        
+        .reserve-deck:first-child {
+            padding-bottom: 35px;
+        }
+        
+        .reserve-card {
+            width: 55px;
+            height: 77px;
+            background: var(--bg-medium);
+            border: 2px solid var(--gold);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.28s ease;
+            font-size: 22px;
+            position: relative;
+        }
+        
+        .reserve-card:hover {
+            box-shadow: 0 0 15px var(--gold);
+            transform: translateY(-2px);
+        }
+        
+        .reserve-card.flipped {
+            background: var(--cream);
+            color: var(--bg-deep);
+        }
+        
+        .passes-indicator {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        .pass-circle {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            border: 2px solid var(--gold);
+            transition: all 0.3s ease;
+        }
+        
+        .pass-circle.available {
+            background: var(--gold);
+            box-shadow: 0 0 8px var(--gold);
+        }
+        
+        .pass-circle.used {
+            background: transparent;
+            opacity: 0.4;
+        }
+        
+        .cards-left-indicator {
+            display: flex;
+            gap: 4px;
+            justify-content: center;
+            position: absolute;
+            bottom: -45px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        .card-triangle {
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 8px solid var(--gold);
+            opacity: 0.8;
+            animation: trianglePulse 0.4s ease;
+        }
+        
+        @keyframes trianglePulse {
+            0% { transform: scale(0.8); opacity: 0.4; }
+            100% { transform: scale(1); opacity: 0.8; }
+        }
+        
+        .reserve-info {
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-warm);
+        }
+        
+        .reserve-count {
+            font-size: 15px;
+            color: var(--gold);
+            font-weight: bold;
+        }
+        
+        .controls {
+            text-align: center;
+            margin: 30px 0;
+        }
+        
+        button {
+            padding: 14px 40px;
+            background: var(--gold);
+            color: var(--bg-deep);
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 8px;
+            transition: all 0.3s ease;
+            font-family: 'DejaVu Sans', Arial, sans-serif;
+        }
+        
+        button:hover {
+            background: var(--gold-pale);
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .status {
+            text-align: center;
+            font-size: 16px;
+            margin: 15px 0;
+            padding: 12px;
+            background: var(--bg-medium);
+            border-radius: 6px;
+            border-left: 3px solid var(--gold);
+            min-height: 45px;
+        }
+        
+        .info-panel {
+            margin-top: 25px;
+            padding: 20px;
+            background: var(--bg-medium);
+            border: 1px solid var(--gold);
+            border-radius: 8px;
+            font-size: 13px;
+        }
+        
+        .info-panel.hidden-panel {
+            display: none !important;
+        }
+        
+        .info-panel h3 {
+            color: var(--gold);
+            margin-bottom: 12px;
+            font-family: 'DejaVu Serif', serif;
+        }
+        
+        .info-panel ul {
+            line-height: 1.9;
+            padding-left: 22px;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        @media (max-width: 768px) {
+            .card { width: 42px; height: 59px; font-size: 17px; }
+            .card-placeholder { width: 42px; height: 59px; }
+            .pyramid-row, .pyramid-preview-row { 
+                gap: 4px; 
+                margin-top: -12px;
+            }
+            .pyramid-row:first-child, .pyramid-preview-row:first-child {
+                margin-top: 0;
+            }
+            .reserve-card { width: 42px; height: 59px; }
+            .reserve-section { gap: 40px; }
+            .reserve-deck:first-child { padding-bottom: 30px; }
+            .logo { font-size: 32px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">PYRA</div>
+        <p style="opacity: 0.8; margin-top: 8px;">Proof of Difficulty Play</p>
+    </div>
+    
+    <div class="game-container">
+        <div id="pyramid-preview" class="pyramid-preview">
+            <div class="pyramid-preview-row">
+                <div class="card-placeholder"></div>
+            </div>
+            <div class="pyramid-preview-row">
+                <div class="card-placeholder"></div>
+                <div class="card-placeholder"></div>
+            </div>
+            <div class="pyramid-preview-row">
+                <div class="card-placeholder"></div>
+                <div class="card-placeholder"></div>
+                <div class="card-placeholder"></div>
+            </div>
+            <div class="pyramid-preview-row">
+                <div class="card-placeholder"></div>
+                <div class="card-placeholder"></div>
+                <div class="card-placeholder"></div>
+                <div class="card-placeholder"></div>
+            </div>
+            <div class="pyramid-preview-row">
+                <div class="card-placeholder"></div>
+                <div class="card-placeholder"></div>
+                <div class="card-placeholder"></div>
+                <div class="card-placeholder"></div>
+                <div class="card-placeholder"></div>
+            </div>
+            <div class="pyramid-preview-row">
+                <div class="card-placeholder"></div>
+                <div class="card-placeholder"></div>
+                <div class="card-placeholder"></div>
+                <div class="card-placeholder"></div>
+                <div class="card-placeholder"></div>
+                <div class="card-placeholder"></div>
+            </div>
+            <div class="pyramid-preview-row">
+                <div class="card-placeholder"></div>
+                <div class="card-placeholder"></div>
+                <div class="card-placeholder"></div>
+                <div class="card-placeholder"></div>
+                <div class="card-placeholder"></div>
+                <div class="card-placeholder"></div>
+                <div class="card-placeholder"></div>
+            </div>
+        </div>
+        
+        <div id="pyramid" class="pyramid hidden"></div>
+        
+        <div class="reserve-section">
+            <div class="reserve-deck">
+                <div class="reserve-card" id="current-card" onclick="selectReserveCard()">
+                    <span id="current-card-rank" style="color: var(--bg-deep); font-size: 20px;">-</span>
+                </div>
+            </div>
+            
+            <div class="reserve-deck">
+                <div class="reserve-card" id="deck-card" onclick="drawCard()" title="Нажмите чтобы открыть следующую карту">
+                    <span style="color: var(--gold); font-size: 28px;">🂠</span>
+                </div>
+                <!-- Кружки будут созданы JavaScript -->
+                <div class="passes-indicator" id="passes-indicator"></div>
+                <div class="cards-left-indicator" id="cards-left-indicator"></div>
+            </div>
+        </div>
+        
+        <div class="status" id="status">Нажмите "Новая игра" чтобы начать</div>
+        
+        <div class="controls">
+            <button onclick="startGame()">▶ Новая игра</button>
+            <button onclick="PYRA_TEST.run_all()">🔬 Тесты</button>
+        </div>
+        
+        <div class="info-panel" id="info-panel">
+            <h3>Правила</h3>
+            <ul>
+                <li>Колода: 36 карт (6-A)</li>
+                <li>Пирамида: 28 карт (7 рядов)</li>
+                <li>Резерв: 8 карт</li>
+                <li>Пара: одинаковый ранг (6+6, Q+Q)</li>
+                <li>Только нижний ряд открыт</li>
+                <li>Карта открывается когда убраны ОБЕ карты под ней</li>
+                <li>3 круга через колоду</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const suits = ['♥', '♦', '♣', '♠'];
+        const ranks = ['6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+        
+        let gameState = {
+            deck: [],
+            pyramid: [],
+            reserve: [],
+            reserveIndex: 0,
+            reservePasses: 0,
+            selectedCard: null,
+            gameActive: false,
+            rowsCleared: 0,
+            gameCompleted: false
+        };
+
+        function createDeck() {
+            const deck = [];
+            for (let suit of suits) {
+                for (let rank of ranks) {
+                    deck.push({ 
+                        suit: suit, 
+                        rank: rank, 
+                        id: `${rank}${suit}`,
+                        value: ranks.indexOf(rank) + 6
+                    });
+                }
+            }
+            return deck;
+        }
+
+        function shuffleDeck(deck) {
+            const shuffled = [...deck];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        function dealPyramid(deck) {
+            const pyramid = [];
+            let cardIndex = 0;
+            
+            for (let row = 0; row < 7; row++) {
+                pyramid[row] = [];
+                for (let col = 0; col <= row; col++) {
+                    pyramid[row][col] = {
+                        card: deck[cardIndex],
+                        faceUp: row === 6,
+                        removed: false
+                    };
+                    cardIndex++;
+                }
+            }
+            
+            const reserve = deck.slice(cardIndex, cardIndex + 8);
+            return { pyramid, reserve };
+        }
+
+        function isMatchingPair(card1, card2) {
+            return card1.rank === card2.rank;
+        }
+
+        function isCardAvailable(row, col) {
+            const slot = gameState.pyramid[row][col];
+            if (!slot.faceUp || slot.removed) return false;
+            if (row === 6) return true;
+            
+            const belowLeft = gameState.pyramid[row + 1]?.[col];
+            const belowRight = gameState.pyramid[row + 1]?.[col + 1];
+            
+            const leftClear = !belowLeft || belowLeft.removed;
+            const rightClear = !belowRight || belowRight.removed;
+            
+            return leftClear && rightClear;
+        }
+
+        function startGame() {
+            document.getElementById('pyramid-preview').classList.add('hidden');
+            document.getElementById('pyramid').classList.remove('hidden');
+            
+            gameState.deck = shuffleDeck(createDeck());
+            const deal = dealPyramid(gameState.deck);
+            gameState.pyramid = deal.pyramid;
+            gameState.reserve = deal.reserve;
+            gameState.reserveIndex = 0;
+            gameState.reservePasses = 0;
+            gameState.selectedCard = null;
+            gameState.gameActive = true;
+            gameState.rowsCleared = 0;
+            gameState.gameCompleted = false;
+            
+            renderPyramid();
+            updateReserveDisplay();
+            document.getElementById('status').textContent = 'Игра началась · Убирайте пары одинакового ранга';
+        }
+
+        function renderPyramid() {
+            const container = document.getElementById('pyramid');
+            container.innerHTML = '';
+            
+            for (let row = 0; row < 7; row++) {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'pyramid-row';
+                
+                for (let col = 0; col <= row; col++) {
+                    const slot = gameState.pyramid[row][col];
+                    const cardDiv = document.createElement('div');
+                    cardDiv.className = 'card';
+                    
+                    if (slot.removed) {
+                        cardDiv.classList.add('matched');
+                    } else if (slot.faceUp) {
+                        cardDiv.classList.add('flipped');
+                        if (['♥', '♦'].includes(slot.card.suit)) {
+                            cardDiv.classList.add('red');
+                        }
+                        cardDiv.textContent = `${slot.card.rank}${slot.card.suit}`;
+                        
+                        if (isCardAvailable(row, col)) {
+                            cardDiv.onclick = () => selectPyramidCard(row, col);
+                        } else {
+                            cardDiv.classList.add('disabled');
+                        }
+                    }
+                    
+                    if (gameState.selectedCard && 
+                        gameState.selectedCard.type === 'pyramid' &&
+                        gameState.selectedCard.row === row && 
+                        gameState.selectedCard.col === col) {
+                        cardDiv.classList.add('selected');
+                    }
+                    
+                    rowDiv.appendChild(cardDiv);
+                }
+                container.appendChild(rowDiv);
+            }
+        }
+
+        function selectPyramidCard(row, col) {
+            if (!gameState.gameActive) return;
+            if (!isCardAvailable(row, col)) return;
+            
+            const card = gameState.pyramid[row][col];
+            
+            if (gameState.selectedCard && 
+                gameState.selectedCard.type === 'pyramid' &&
+                gameState.selectedCard.row === row && 
+                gameState.selectedCard.col === col) {
+                gameState.selectedCard = null;
+                renderPyramid();
+                return;
+            }
+            
+            if (gameState.selectedCard) {
+                const prevSlot = gameState.pyramid[gameState.selectedCard.row][gameState.selectedCard.col];
+                
+                if (isMatchingPair(prevSlot.card, card.card)) {
+                    removePair(gameState.selectedCard.row, gameState.selectedCard.col, row, col);
+                    return;
+                }
+            }
+            
+            gameState.selectedCard = { type: 'pyramid', row, col };
+            renderPyramid();
+        }
+
+        function selectReserveCard() {
+            if (!gameState.gameActive) return;
+            if (gameState.reserveIndex >= gameState.reserve.length) return;
+            
+            const reserveCard = gameState.reserve[gameState.reserveIndex];
+            
+            if (gameState.selectedCard && gameState.selectedCard.type === 'pyramid') {
+                const pyramidSlot = gameState.pyramid[gameState.selectedCard.row][gameState.selectedCard.col];
+                
+                if (isMatchingPair(pyramidSlot.card, reserveCard)) {
+                    removePairFromReserve(gameState.selectedCard.row, gameState.selectedCard.col);
+                    return;
+                }
+            }
+            
+            gameState.selectedCard = { type: 'reserve', card: reserveCard };
+            document.getElementById('current-card').classList.add('selected');
+        }
+
+        function removePair(row1, col1, row2, col2) {
+            gameState.pyramid[row1][col1].removed = true;
+            gameState.pyramid[row2][col2].removed = true;
+            
+            revealCardsAbove(row1, col1);
+            revealCardsAbove(row2, col2);
+            
+            gameState.selectedCard = null;
+            renderPyramid();
+            checkRowsCleared();
+            checkWin();
+            
+            document.getElementById('status').textContent = '✅ Пара убрана';
+        }
+
+        function removePairFromReserve(row, col) {
+            gameState.pyramid[row][col].removed = true;
+            
+            revealCardsAbove(row, col);
+            
+            gameState.reserveIndex++;
+            gameState.selectedCard = null;
+            
+            renderPyramid();
+            updateReserveDisplay();
+            checkRowsCleared();
+            checkWin();
+            
+            document.getElementById('status').textContent = '✅ Пара убрана';
+        }
+
+        function revealCardsAbove(row, col) {
+            if (row > 0) {
+                if (col > 0) {
+                    const aboveLeft = gameState.pyramid[row - 1]?.[col - 1];
+                    if (aboveLeft && !aboveLeft.faceUp) {
+                        const belowLeft1 = gameState.pyramid[row]?.[col - 1];
+                        const belowLeft2 = gameState.pyramid[row]?.[col];
+                        if ((!belowLeft1 || belowLeft1.removed) && (!belowLeft2 || belowLeft2.removed)) {
+                            aboveLeft.faceUp = true;
+                        }
+                    }
+                }
+                const aboveRight = gameState.pyramid[row - 1]?.[col];
+                if (aboveRight && !aboveRight.faceUp) {
+                    const belowRight1 = gameState.pyramid[row]?.[col];
+                    const belowRight2 = gameState.pyramid[row]?.[col + 1];
+                    if ((!belowRight1 || belowRight1.removed) && (!belowRight2 || belowRight2.removed)) {
+                        aboveRight.faceUp = true;
+                    }
+                }
+            }
+        }
+
+        function drawCard() {
+            if (!gameState.gameActive) {
+                document.getElementById('status').textContent = 'Сначала начните новую игру';
+                return;
+            }
+            
+            if (gameState.reserveIndex >= gameState.reserve.length) {
+                if (gameState.reservePasses < 2) {
+                    gameState.reserveIndex = 0;
+                    gameState.reservePasses++;
+                    document.getElementById('status').textContent = `🔄 Круг ${gameState.reservePasses + 1}/3`;
+                    updateReserveDisplay();
+                } else {
+                    return;
+                }
+                return;
+            }
+            
+            gameState.reserveIndex++;
+            updateReserveDisplay();
+            document.getElementById('status').textContent = 'Карта открыта · Выберите пару';
+        }
+
+        function updateReserveDisplay() {
+            const currentCardEl = document.getElementById('current-card');
+            const currentRankEl = document.getElementById('current-card-rank');
+            const passesIndicator = document.getElementById('passes-indicator');
+            const cardsLeftIndicator = document.getElementById('cards-left-indicator');
+            
+            // Обновляем верхнюю карту
+            if (gameState.reserveIndex < gameState.reserve.length) {
+                const card = gameState.reserve[gameState.reserveIndex];
+                currentRankEl.textContent = `${card.rank}${card.suit}`;
+                currentRankEl.className = ['♥', '♦'].includes(card.suit) ? 'red' : '';
+                currentCardEl.classList.add('flipped');
+            } else {
+                currentRankEl.textContent = '-';
+                currentCardEl.classList.remove('flipped');
+            }
+            
+            // Создаем кружки заново
+            passesIndicator.innerHTML = '';
+            for (let i = 0; i < 3; i++) {
+                const circle = document.createElement('span');
+                circle.className = 'pass-circle';
+                if (i < gameState.reservePasses) {
+                    circle.classList.add('used');
+                } else {
+                    circle.classList.add('available');
+                }
+                passesIndicator.appendChild(circle);
+            }
+            
+            // Треугольники (ТОЛЬКО на 3-м круге, когда < 4 карт)
+            const cardsLeft = gameState.reserve.length - gameState.reserveIndex;
+            cardsLeftIndicator.innerHTML = '';
+            if (gameState.reservePasses === 2 && cardsLeft > 0 && cardsLeft < 4) {
+                for (let i = 0; i < cardsLeft; i++) {
+                    const triangle = document.createElement('div');
+                    triangle.className = 'card-triangle';
+                    triangle.style.animationDelay = `${i * 0.1}s`;
+                    cardsLeftIndicator.appendChild(triangle);
+                }
+            }
+            
+            // Выделение выбранной карты
+            if (gameState.selectedCard && gameState.selectedCard.type === 'reserve') {
+                currentCardEl.classList.add('selected');
+            } else {
+                currentCardEl.classList.remove('selected');
+            }
+        }
+
+        function checkRowsCleared() {
+            let cleared = 0;
+            for (let row = 0; row < 7; row++) {
+                if (gameState.pyramid[row].every(slot => slot.removed)) {
+                    cleared++;
+                }
+            }
+            gameState.rowsCleared = cleared;
+        }
+
+        function checkWin() {
+            const allRemoved = gameState.pyramid.every(row => 
+                row.every(slot => slot.removed)
+            );
+            
+            if (allRemoved) {
+                document.getElementById('status').textContent = '🏆 ПОБЕДА! Все 7 рядов убраны!';
+                gameState.gameActive = false;
+                gameState.gameCompleted = true;
+                
+                // Скрываем панель правил
+                const infoPanel = document.getElementById('info-panel');
+                if (infoPanel) {
+                    infoPanel.classList.add('hidden-panel');
+                }
+            }
+        }
+
+        const PYRA_TEST = {
+            results: { passed: 0, failed: 0, total: 0 },
+            
+            test_deck_size: function() {
+                this.results.total++;
+                const deck = createDeck();
+                const passed = deck.length === 36;
+                this.results.passed += passed ? 1 : 0;
+                this.results.failed += passed ? 0 : 1;
+                console.log(`[${passed ? '✅' : '❌'}] Тест 1.1: Колода = 36 карт (факт: ${deck.length})`);
+                return passed;
+            },
+            
+            test_pyramid_cards: function() {
+                this.results.total++;
+                const deck = createDeck();
+                const { pyramid, reserve } = dealPyramid(deck);
+                const pyramidCards = pyramid.flat().filter(s => s.card).length;
+                const reserveCards = reserve.length;
+                const passed = pyramidCards === 28 && reserveCards === 8;
+                this.results.passed += passed ? 1 : 0;
+                this.results.failed += passed ? 0 : 1;
+                console.log(`[${passed ? '✅' : '❌'}] Тест 1.2: Пирамида = 28, Резерв = 8`);
+                return passed;
+            },
+            
+            test_pair_same_rank: function() {
+                this.results.total++;
+                const card1 = { rank: '6', suit: '♠' };
+                const card2 = { rank: '6', suit: '♥' };
+                const passed = isMatchingPair(card1, card2) === true;
+                this.results.passed += passed ? 1 : 0;
+                this.results.failed += passed ? 0 : 1;
+                console.log(`[${passed ? '✅' : '❌'}] Тест 2.1: 6♠ + 6♥ = пара`);
+                return passed;
+            },
+            
+            test_pair_different_rank: function() {
+                this.results.total++;
+                const card1 = { rank: '6', suit: '♠' };
+                const card2 = { rank: '7', suit: '♥' };
+                const passed = isMatchingPair(card1, card2) === false;
+                this.results.passed += passed ? 1 : 0;
+                this.results.failed += passed ? 0 : 1;
+                console.log(`[${passed ? '✅' : '❌'}] Тест 2.2: 6♠ + 7♥ ≠ пара`);
+                return passed;
+            },
+            
+            test_only_bottom_open: function() {
+                this.results.total++;
+                const deck = createDeck();
+                const { pyramid } = dealPyramid(deck);
+                const bottomOpen = pyramid[6].every(s => s.faceUp);
+                const upperClosed = pyramid.slice(0, 6).every(row => row.every(s => !s.faceUp));
+                const passed = bottomOpen && upperClosed;
+                this.results.passed += passed ? 1 : 0;
+                this.results.failed += passed ? 0 : 1;
+                console.log(`[${passed ? '✅' : '❌'}] Тест 3.1: Только ряд 7 открыт`);
+                return passed;
+            },
+            
+            run_all: function() {
+                console.log('\n╔═══════════════════════════════════════════════════════════╗');
+                console.log('║         PYRA · AUTOMAT — TEST SUITE v1.0                  ║');
+                console.log('╚═══════════════════════════════════════════════════════════╝\n');
+                
+                console.log('━━━ УРОВЕНЬ 1: ЯДРО ИГРЫ ━━━');
+                this.test_deck_size();
+                this.test_pyramid_cards();
+                
+                console.log('\n━━━ УРОВЕНЬ 2: ПРАВИЛО ПАР ━━━');
+                this.test_pair_same_rank();
+                this.test_pair_different_rank();
+                
+                console.log('\n━━━ УРОВЕНЬ 3: ЛОГИКА ОТКРЫТИЯ ━━━');
+                this.test_only_bottom_open();
+                
+                console.log('\n╔═══════════════════════════════════════════════════════════╗');
+                console.log('║                    ИТОГИ ТЕСТИРОВАНИЯ                      ║');
+                console.log('╠═══════════════════════════════════════════════════════════╣');
+                console.log(`║  Всего тестов:  ${this.results.total}`);
+                console.log(`║  ✅ Пройдено:   ${this.results.passed}`);
+                console.log(`║  ❌ Провалено:  ${this.results.failed}`);
+                const rate = ((this.results.passed / this.results.total) * 100).toFixed(1);
+                console.log(`║  Успешность:    ${rate}%`);
+                console.log('╚═══════════════════════════════════════════════════════════╝\n');
+                
+                if (this.results.failed === 0) {
+                    console.log('🎉 ВСЕ ТЕСТЫ ПРОЙДЕНЫ!\n');
+                    alert('✅ Все тесты пройдены!');
+                } else {
+                    console.log('⚠️  НАЙДЕНЫ ОШИБКИ!\n');
+                    alert(`❌ Ошибок: ${this.results.failed}`);
+                }
+                
+                return this.results;
+            }
+        };
+        
+        window.createDeck = createDeck;
+        window.dealPyramid = dealPyramid;
+        window.isMatchingPair = isMatchingPair;
+        window.PYRA_TEST = PYRA_TEST;
+        
+        // Инициализация при загрузке
+        window.addEventListener('DOMContentLoaded', function() {
+            updateReserveDisplay();
+        });
+        
+        console.log('✅ PYRA загружена. Введите PYRA_TEST.run_all() для тестов');
+    </script>
+</body>
+</html>
