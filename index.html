@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Пирамида · PYRA</title>
+    <style>
+        :root {
+            --bg-deep: #08100A;
+            --bg-medium: #111C13;
+            --gold: #C8A84B;
+            --gold-pale: #F5E4A8;
+            --cream: #F9F3E8;
+            --text-warm: #D4C9A8;
+            --red-card: #C0272D;
+            --tutorial-green: #50FF50;
+        }
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            background: var(--bg-deep);
+            color: var(--cream);
+            font-family: 'DejaVu Sans', Arial, sans-serif;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            border-bottom: 2px solid var(--gold);
+        }
+        
+        .logo {
+            font-family: 'DejaVu Serif', serif;
+            font-size: 42px;
+            color: var(--gold);
+            letter-spacing: 8px;
+        }
+        
+        .game-container {
+            max-width: 900px;
+            margin: 0 auto;
+            position: relative;
+        }
+        
+        .pyramid {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0;
+            margin: 30px 0;
+        }
+        
+        .pyramid-row {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+            margin-top: -15px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .pyramid-row:first-child { margin-top: 0; }
+        
+        .card {
+            width: 55px;
+            height: 77px;
+            background: var(--bg-medium);
+            border: 2px solid var(--gold);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            cursor: pointer;
+            transition: all 0.28s ease-in-out;
+            position: relative;
+            z-index: 2;
+            user-select: none;
+        }
+        
+        .card.flipped {
+            background: var(--cream);
+            color: var(--bg-deep);
+            z-index: 3;
+        }
+        
+        .card.red { color: var(--red-card); }
+        
+        .card.selected {
+            box-shadow: 0 0 20px var(--gold), 0 0 10px var(--gold);
+            transform: translateY(-5px);
+            z-index: 10;
+        }
+        
+        .card.matched {
+            opacity: 0;
+            transform: scale(0.5);
+        }
+        
+        .card.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        
+        .card.tutorial-highlight {
+            animation: tutorialPulse 1.5s ease-in-out infinite;
+            border-color: var(--tutorial-green);
+            box-shadow: 0 0 15px var(--tutorial-green);
+        }
+        
+        @keyframes tutorialPulse {
+            0%, 100% { box-shadow: 0 0 15px var(--tutorial-green); }
+            50% { box-shadow: 0 0 30px var(--tutorial-green); }
+        }
+        
+        .reserve-section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 50px;
+            margin: 30px 0;
+        }
+        
+        .reserve-deck {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+        }
+        
+        .reserve-deck:first-child { padding-bottom: 35px; }
+        
+        .reserve-card {
+            width: 55px;
+            height: 77px;
+            background: var(--bg-medium);
+            border: 2px solid var(--gold);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.28s ease;
+            font-size: 22px;
+            position: relative;
+        }
+        
+        .reserve-card:hover {
+            box-shadow: 0 0 15px var(--gold);
+            transform: translateY(-2px);
+        }
+        
+        .reserve-card.flipped {
+            background: var(--cream);
+            color: var(--bg-deep);
+        }
+        
+        .reserve-card.tutorial-highlight {
+            animation: tutorialPulse 1.5s ease-in-out infinite;
+            border-color: var(--tutorial-green);
+            box-shadow: 0 0 15px var(--tutorial-green);
+        }
+        
+        .passes-indicator {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        .pass-circle {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            border: 2px solid var(--gold);
+        }
+        
+        .pass-circle.available { background: var(--gold); box-shadow: 0 0 8px var(--gold); }
+        .pass-circle.used { background: transparent; opacity: 0.4; }
+        
+        .controls { text-align: center; margin: 30px 0; }
+        
+        button {
+            padding: 14px 40px;
+            background: var(--gold);
+            color: var(--bg-deep);
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover { background: var(--gold-pale); transform: translateY(-2px); }
+        
+        .tutorial-message {
+            text-align: center;
+            font-size: 18px;
+            margin: 15px 0;
+            padding: 15px 25px;
+            background: var(--bg-medium);
+            border-radius: 8px;
+            border-left: 4px solid var(--tutorial-green);
+            min-height: 55px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .status {
+            text-align: center;
+            font-size: 16px;
+            margin: 15px 0;
+            padding: 12px;
+            background: var(--bg-medium);
+            border-radius: 6px;
+            border-left: 3px solid var(--gold);
+        }
+        
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">PYRA</div>
+        <p style="opacity: 0.8; margin-top: 8px;">Proof of Difficulty Play</p>
+    </div>
+    
+    <div class="game-container">
+        <div id="pyramid" class="pyramid hidden"></div>
+        
+        <div class="reserve-section">
+            <div class="reserve-deck">
+                <div class="reserve-card" id="current-card" onclick="selectReserveCard()">
+                    <span id="current-card-rank" style="color: var(--bg-deep); font-size: 20px;">-</span>
+                </div>
+            </div>
+            <div class="reserve-deck">
+                <div class="reserve-card" id="deck-card" onclick="drawCard()">
+                    <span style="color: var(--gold); font-size: 28px;">🂠</span>
+                </div>
+                <div class="passes-indicator" id="passes-indicator"></div>
+            </div>
+        </div>
+        
+        <div class="tutorial-message" id="tutorial-message" style="display: none;">
+            <span id="tutorial-text"></span>
+        </div>
+        
+        <div class="status" id="status">Нажмите "Новая игра" чтобы начать</div>
+        
+        <div class="controls">
+            <button onclick="startGame()">▶ Новая игра</button>
+            <button onclick="PYRA_TEST.run_all()">🔬 Тесты</button>
+        </div>
+    </div>
+
+    <script>
+        const suits = ['♥', '♦', '♣', '♠'];
+        const ranks = ['6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+        
+        let gameState = {
+            deck: [], pyramid: [], reserve: [],
+            reserveIndex: 0, reservePasses: 0,
+            selectedCard: null, gameActive: false,
+            rowsCleared: 0, gameCompleted: false,
+            firstGame: true, tutorialStep: 0,
+            tutorialPair: null, tutorialExtraPairs: [],
+            tutorialDeckPair: null
+        };
+
+        const BehaviorTracker = {
+            sessionId: crypto.randomUUID ? crypto.randomUUID() : 'sess_' + Math.random().toString(36).substr(2, 9),
+            startTime: null,
+            events: [],
+            tracking: false,
+            currentStep: 1,
+            stepStartTime: null,
+            stepData: {},
+            gameStates: [],
+            clickHandler: null,
+            mouseoverHandler: null,
+            mousemoveHandler: null,
+            
+            start() {
+                this.startTime = performance.now();
+                this.stepStartTime = this.startTime;
+                this.currentStep = 1;
+                this.tracking = true;
+                this.events = [];
+                this.stepData = {};
+                this.gameStates = [];
+                this.bindListeners();
+            },
+            
+            bindListeners() {
+                // Удаляем старые слушатели если есть
+                if (this.clickHandler) {
+                    document.removeEventListener('click', this.clickHandler);
+                    document.removeEventListener('mouseover', this.mouseoverHandler);
+                    document.removeEventListener('mousemove', this.mousemoveHandler);
+                }
+                
+                // Создаём новые обработчики
+                this.clickHandler = (e) => this.record('click', e);
+                this.mouseoverHandler = (e) => this.record('hover', e);
+                
+                let lastMove = 0;
+                this.mousemoveHandler = (e) => {
+                    const now = performance.now();
+                    if (now - lastMove > 100) {
+                        this.record('move', e);
+                        lastMove = now;
+                    }
+                };
+                
+                // Привязываем
+                document.addEventListener('click', this.clickHandler, {passive: true, capture: false});
+                document.addEventListener('mouseover', this.mouseoverHandler, {passive: true, capture: false});
+                document.addEventListener('mousemove', this.mousemoveHandler, {passive: true, capture: false});
+            },
+            
+            record(action, event) {
+                if (!this.tracking) return;
+                const t = (performance.now() - this.startTime) / 1000;
+                const target = event.target.closest('[data-card-id], .card, .reserve-card, button, #pyramid, #deck-card, #current-card');
+                
+                let element = 'unknown';
+                if (target) {
+                    element = target.dataset?.cardId || target.id || target.classList?.[0] || target.tagName?.toLowerCase() || 'unknown';
+                }
+                
+                this.events.push({
+                    t: parseFloat(t.toFixed(3)),
+                    action,
+                    element,
+                    x: event.clientX,
+                    y: event.clientY,
+                    step: this.currentStep
+                });
+            },
+            
+            nextStep(stepNumber, instruction) {
+                const stepDuration = (performance.now() - this.stepStartTime) / 1000;
+                const stepEvents = this.events.filter(e => e.step === this.currentStep);
+                const stepGameStates = this.gameStates.filter(gs => gs.step === this.currentStep);
+                
+                this.stepData[this.currentStep] = {
+                    step: this.currentStep,
+                    instruction: instruction,
+                    duration_sec: parseFloat(stepDuration.toFixed(2)),
+                    clicks: stepEvents.filter(e => e.action === 'click').length,
+                    hovers: stepEvents.filter(e => e.action === 'hover').length,
+                    moves: stepEvents.filter(e => e.action === 'move').length,
+                    first_action_delay: stepEvents[0]?.t || 0,
+                    errors: stepGameStates.filter(gs => gs.type === 'error').length,
+                    successes: stepGameStates.filter(gs => gs.type === 'success').length
+                };
+                
+                this.currentStep = stepNumber;
+                this.stepStartTime = performance.now();
+            },
+            
+            recordError(cardId, errorType) {
+                this.gameStates.push({
+                    t: (performance.now() - this.startTime) / 1000,
+                    type: 'error',
+                    card_id: cardId,
+                    error_type: errorType || 'wrong_card_click',
+                    step: this.currentStep
+                });
+            },
+            
+            recordSuccess(pair) {
+                this.gameStates.push({
+                    t: (performance.now() - this.startTime) / 1000,
+                    type: 'success',
+                    pair: pair,
+                    step: this.currentStep
+                });
+            },
+            
+            stop() {
+                this.nextStep(999, 'Completed');
+                this.tracking = false;
+                return {
+                    session_id: this.sessionId,
+                    events: this.events,
+                    step_data: this.stepData,
+                    game_states: this.gameStates,
+                    tutorial_completed: true,
+                    tutorial_steps_passed: this.currentStep - 1,
+                    total_duration_sec: ((performance.now() - this.startTime) / 1000).toFixed(2)
+                };
+            },
+            
+            reset() {
+                this.sessionId = crypto.randomUUID ? crypto.randomUUID() : 'sess_' + Math.random().toString(36).substr(2, 9);
+                this.events = [];
+                this.stepData = {};
+                this.gameStates = [];
+                // Удаляем слушатели
+                if (this.clickHandler) {
+                    document.removeEventListener('click', this.clickHandler);
+                    document.removeEventListener('mouseover', this.mouseoverHandler);
+                    document.removeEventListener('mousemove', this.mousemoveHandler);
+                }
+            }
+        };
+
+        function createDeck() {
+            const deck = [];
+            for (let suit of suits) {
+                for (let rank of ranks) {
+                    deck.push({ suit, rank, id: `${rank}${suit}`, value: ranks.indexOf(rank) + 6 });
+                }
+            }
+            return deck;
+        }
+
+        function shuffleDeck(deck) {
+            const shuffled = [...deck];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        function dealPyramid(deck) {
+            const pyramid = [];
+            let cardIndex = 0;
+            for (let row = 0; row < 7; row++) {
+                pyramid[row] = [];
+                for (let col = 0; col <= row; col++) {
+                    pyramid[row][col] = { card: deck[cardIndex], faceUp: row === 6, removed: false };
+                    cardIndex++;
+                }
+            }
+            return { pyramid, reserve: deck.slice(cardIndex, cardIndex + 8) };
+        }
+
+        function isMatchingPair(card1, card2) { return card1.rank === card2.rank; }
+
+        function isCardAvailable(row, col) {
+            const slot = gameState.pyramid[row][col];
+            if (!slot) return false;
+            if (!slot.faceUp || slot.removed) return false;
+            if (row === 6) return true;
+            const belowLeft = gameState.pyramid[row + 1]?.[col];
+            const belowRight = gameState.pyramid[row + 1]?.[col + 1];
+            return (!belowLeft || belowLeft.removed) && (!belowRight || belowRight.removed);
+        }
+
+        function findTutorialPair() {
+            const bottomRow = gameState.pyramid[6];
+            const rankMap = {};
+            for (let col = 0; col < bottomRow.length; col++) {
+                const slot = bottomRow[col];
+                if (!slot.removed && slot.faceUp) {
+                    const rank = slot.card.rank;
+                    if (rankMap[rank] !== undefined) {
+                        return { card1: { row: 6, col: rankMap[rank] }, card2: { row: 6, col }, rank };
+                    }
+                    rankMap[rank] = col;
+                }
+            }
+            return null;
+        }
+
+        function findExtraPairs() {
+            const pairs = [];
+            const bottomRow = gameState.pyramid[6];
+            const rankMap = {};
+            for (let col = 0; col < bottomRow.length && pairs.length < 3; col++) {
+                const slot = bottomRow[col];
+                if (!slot.removed && slot.faceUp) {
+                    const rank = slot.card.rank;
+                    if (rankMap[rank] !== undefined) {
+                        pairs.push({ card1: { row: 6, col: rankMap[rank] }, card2: { row: 6, col } });
+                    }
+                    rankMap[rank] = col;
+                }
+            }
+            return pairs;
+        }
+
+        function findTutorialDeckPair() {
+            if (gameState.reserveIndex >= gameState.reserve.length) return null;
+            const deckCard = gameState.reserve[gameState.reserveIndex];
+            for (let row = 0; row < 7; row++) {
+                for (let col = 0; col <= row; col++) {
+                    const slot = gameState.pyramid[row][col];
+                    if (!slot.removed && slot.faceUp && isCardAvailable(row, col)) {
+                        if (isMatchingPair(slot.card, deckCard)) {
+                            return { pyramid: { row, col }, rank: deckCard.rank };
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        function showTutorialMessage(text) {
+            document.getElementById('tutorial-text').textContent = text;
+            document.getElementById('tutorial-message').style.display = 'flex';
+        }
+
+        function hideTutorialMessage() {
+            document.getElementById('tutorial-message').style.display = 'none';
+        }
+
+        function highlightCards(pairs) {
+            clearHighlights();
+            pairs.forEach(pair => {
+                const rows = document.querySelectorAll('.pyramid-row');
+                const row = rows[pair.card1.row];
+                if (row) {
+                    const cards = row.querySelectorAll('.card');
+                    if (cards[pair.card1.col]) cards[pair.card1.col].classList.add('tutorial-highlight');
+                    if (cards[pair.card2.col]) cards[pair.card2.col].classList.add('tutorial-highlight');
+                }
+            });
+        }
+
+        function highlightDeck() {
+            clearHighlights();
+            const deck = document.getElementById('deck-card');
+            if (deck) deck.classList.add('tutorial-highlight');
+        }
+
+        function highlightDeckAndPyramid(deckPair) {
+            clearHighlights();
+            const deck = document.getElementById('deck-card');
+            if (deck) deck.classList.add('tutorial-highlight');
+            if (deckPair) {
+                const rows = document.querySelectorAll('.pyramid-row');
+                const row = rows[deckPair.pyramid.row];
+                if (row) {
+                    const cards = row.querySelectorAll('.card');
+                    if (cards[deckPair.pyramid.col]) cards[deckPair.pyramid.col].classList.add('tutorial-highlight');
+                }
+            }
+        }
+
+        function clearHighlights() {
+            document.querySelectorAll('.tutorial-highlight').forEach(el => el.classList.remove('tutorial-highlight'));
+        }
+
+        function startGame() {
+            BehaviorTracker.reset();
+            BehaviorTracker.start();
+            
+            document.getElementById('pyramid').classList.remove('hidden');
+            
+            gameState.deck = shuffleDeck(createDeck());
+            const deal = dealPyramid(gameState.deck);
+            gameState.pyramid = deal.pyramid;
+            gameState.reserve = deal.reserve;
+            gameState.reserveIndex = 0;
+            gameState.reservePasses = 0;
+            gameState.selectedCard = null;
+            gameState.gameActive = true;
+            gameState.rowsCleared = 0;
+            gameState.gameCompleted = false;
+            
+            renderPyramid();
+            updateReserveDisplay();
+            
+            if (gameState.firstGame) {
+                gameState.tutorialStep = 1;
+                gameState.tutorialPair = findTutorialPair();
+                
+                if (gameState.tutorialPair) {
+                    showTutorialMessage('Уберите две одинаковые карты');
+                    highlightCards([gameState.tutorialPair]);
+                } else {
+                    startTutorialStep3();
+                }
+            } else {
+                document.getElementById('status').textContent = 'Игра началась · Убирайте пары одинакового ранга';
+            }
+        }
+
+        function startTutorialStep2() {
+            BehaviorTracker.nextStep(2, 'Найдите пару самостоятельно');
+            gameState.tutorialStep = 2;
+            gameState.tutorialExtraPairs = findExtraPairs();
+            if (gameState.tutorialExtraPairs.length > 0) {
+                highlightCards(gameState.tutorialExtraPairs);
+            } else {
+                startTutorialStep3();
+            }
+        }
+
+        function startTutorialStep3() {
+            BehaviorTracker.nextStep(3, 'Используйте резервную колоду');
+            gameState.tutorialStep = 3;
+            showTutorialMessage('');
+            highlightDeck();
+        }
+
+        function startTutorialStep4() {
+            BehaviorTracker.nextStep(4, 'Соберите 3 пары подряд');
+            gameState.tutorialStep = 4;
+            gameState.tutorialDeckPair = findTutorialDeckPair();
+            
+            if (gameState.tutorialDeckPair) {
+                showTutorialMessage('');
+                highlightDeckAndPyramid(gameState.tutorialDeckPair);
+            } else {
+                showTutorialMessage('Нажмите на колоду еще раз');
+                highlightDeck();
+            }
+        }
+
+        async function endTutorial() {
+            hideTutorialMessage();
+            clearHighlights();
+            gameState.firstGame = false;
+            
+            const data = BehaviorTracker.stop();
+            
+            try {
+                const response = await fetch('http://localhost:8000/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    mode: 'cors',
+                    body: JSON.stringify({
+                        session_id: data.session_id,
+                        events: data.events,
+                        step_data: data.step_data || {},
+                        game_states: data.game_states || [],
+                        tutorial_completed: true,
+                        tutorial_steps_passed: gameState.tutorialStep,
+                        total_duration_sec: parseFloat(data.total_duration_sec) || 0,
+                        user_id: null
+                    })
+                });
+                
+                const result = await response.json();
+                console.log('✅ CAPTCHA passed:', result);
+                
+            } catch (e) {
+                console.warn('⚠️ Не удалось отправить данные:', e);
+            }
+            
+            document.getElementById('status').textContent = '🎮 Обучение завершено · Игра началась';
+        }
+
+        function renderPyramid() {
+            const container = document.getElementById('pyramid');
+            container.innerHTML = '';
+            for (let row = 0; row < 7; row++) {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'pyramid-row';
+                for (let col = 0; col <= row; col++) {
+                    const slot = gameState.pyramid[row][col];
+                    const cardDiv = document.createElement('div');
+                    cardDiv.className = 'card';
+                    
+                    if (slot.card) {
+                        cardDiv.dataset.cardId = slot.card.id;
+                    }
+                    
+                    if (slot.removed) {
+                        cardDiv.classList.add('matched');
+                    } else if (slot.faceUp) {
+                        cardDiv.classList.add('flipped');
+                        if (['♥', '♦'].includes(slot.card.suit)) cardDiv.classList.add('red');
+                        cardDiv.textContent = `${slot.card.rank}${slot.card.suit}`;
+                        if (isCardAvailable(row, col)) {
+                            cardDiv.onclick = () => selectPyramidCard(row, col);
+                        } else {
+                            cardDiv.classList.add('disabled');
+                        }
+                    }
+                    if (gameState.selectedCard && gameState.selectedCard.type === 'pyramid' &&
+                        gameState.selectedCard.row === row && gameState.selectedCard.col === col) {
+                        cardDiv.classList.add('selected');
+                    }
+                    rowDiv.appendChild(cardDiv);
+                }
+                container.appendChild(rowDiv);
+            }
+        }
+
+        function selectPyramidCard(row, col) {
+            if (!gameState.gameActive || !isCardAvailable(row, col)) return;
+            const slot = gameState.pyramid[row][col];
+            if (!slot || !slot.card) return;
+            
+            const card = slot.card;
+            
+            if (gameState.firstGame && gameState.tutorialStep === 1) {
+                if (!gameState.selectedCard) {
+                    gameState.selectedCard = { type: 'pyramid', row, col };
+                    renderPyramid();
+                    highlightCards([gameState.tutorialPair]);
+                    return;
+                }
+            }
+            
+            if (gameState.selectedCard && gameState.selectedCard.type === 'pyramid' &&
+                gameState.selectedCard.row === row && gameState.selectedCard.col === col) {
+                gameState.selectedCard = null;
+                renderPyramid();
+                if (gameState.firstGame && gameState.tutorialStep === 1) {
+                    highlightCards([gameState.tutorialPair]);
+                }
+                return;
+            }
+            
+            if (gameState.selectedCard) {
+                if (gameState.selectedCard.type === 'pyramid') {
+                    const prevSlot = gameState.pyramid[gameState.selectedCard.row][gameState.selectedCard.col];
+                    if (prevSlot && prevSlot.card && card.rank === prevSlot.card.rank) {
+                        removePair(gameState.selectedCard.row, gameState.selectedCard.col, row, col);
+                        return;
+                    }
+                } else if (gameState.selectedCard.type === 'reserve') {
+                    const reserveCard = gameState.reserve[gameState.reserveIndex];
+                    if (reserveCard && card.rank === reserveCard.rank) {
+                        removePairFromReserve(row, col);
+                        return;
+                    }
+                }
+            }
+            
+            gameState.selectedCard = { type: 'pyramid', row, col };
+            renderPyramid();
+        }
+
+        function selectReserveCard() {
+            if (!gameState.gameActive || gameState.reserveIndex >= gameState.reserve.length) return;
+            const reserveCard = gameState.reserve[gameState.reserveIndex];
+            
+            if (gameState.firstGame && gameState.tutorialStep === 3) {
+                startTutorialStep4();
+                return;
+            }
+            
+            if (gameState.firstGame && gameState.tutorialStep === 4 && !gameState.tutorialDeckPair) {
+                gameState.reserveIndex++;
+                updateReserveDisplay();
+                gameState.tutorialDeckPair = findTutorialDeckPair();
+                if (gameState.tutorialDeckPair) {
+                    showTutorialMessage('');
+                    highlightDeckAndPyramid(gameState.tutorialDeckPair);
+                }
+                return;
+            }
+            
+            if (gameState.selectedCard && gameState.selectedCard.type === 'pyramid') {
+                const pyramidSlot = gameState.pyramid[gameState.selectedCard.row][gameState.selectedCard.col];
+                if (pyramidSlot && pyramidSlot.card && isMatchingPair(pyramidSlot.card, reserveCard)) {
+                    removePairFromReserve(gameState.selectedCard.row, gameState.selectedCard.col);
+                    return;
+                }
+            }
+            
+            gameState.selectedCard = { type: 'reserve', card: reserveCard };
+            document.getElementById('current-card').classList.add('selected');
+        }
+
+        function removePair(row1, col1, row2, col2) {
+            if (!gameState.pyramid[row1] || !gameState.pyramid[row1][col1] || 
+                !gameState.pyramid[row2] || !gameState.pyramid[row2][col2]) {
+                return;
+            }
+            
+            gameState.pyramid[row1][col1].removed = true;
+            gameState.pyramid[row2][col2].removed = true;
+            revealCardsAbove(row1, col1);
+            revealCardsAbove(row2, col2);
+            gameState.selectedCard = null;
+            renderPyramid();
+            checkRowsCleared();
+            checkWin();
+            
+            BehaviorTracker.recordSuccess({
+                card1: gameState.pyramid[row1][col1].card.id,
+                card2: gameState.pyramid[row2][col2].card.id
+            });
+            
+            if (gameState.firstGame && gameState.tutorialStep === 1) {
+                BehaviorTracker.start();
+                startTutorialStep2();
+            } else {
+                document.getElementById('status').textContent = '✅ Пара убрана';
+            }
+        }
+
+        function removePairFromReserve(row, col) {
+            if (!gameState.pyramid[row] || !gameState.pyramid[row][col]) return;
+            
+            gameState.pyramid[row][col].removed = true;
+            revealCardsAbove(row, col);
+            gameState.reserve.splice(gameState.reserveIndex, 1);
+            gameState.selectedCard = null;
+            renderPyramid();
+            updateReserveDisplay();
+            checkRowsCleared();
+            checkWin();
+            
+            BehaviorTracker.recordSuccess({
+                card1: gameState.pyramid[row][col].card.id,
+                card2: 'reserve'
+            });
+            
+            if (gameState.firstGame && gameState.tutorialStep === 4) {
+                endTutorial();
+            } else {
+                document.getElementById('status').textContent = '✅ Пара убрана';
+            }
+        }
+
+        function revealCardsAbove(row, col) {
+            if (row > 0) {
+                if (col > 0) {
+                    const aboveLeft = gameState.pyramid[row - 1]?.[col - 1];
+                    if (aboveLeft && !aboveLeft.faceUp) {
+                        const b1 = gameState.pyramid[row]?.[col - 1];
+                        const b2 = gameState.pyramid[row]?.[col];
+                        if ((!b1 || b1.removed) && (!b2 || b2.removed)) aboveLeft.faceUp = true;
+                    }
+                }
+                const aboveRight = gameState.pyramid[row - 1]?.[col];
+                if (aboveRight && !aboveRight.faceUp) {
+                    const b1 = gameState.pyramid[row]?.[col];
+                    const b2 = gameState.pyramid[row]?.[col + 1];
+                    if ((!b1 || b1.removed) && (!b2 || b2.removed)) aboveRight.faceUp = true;
+                }
+            }
+        }
+
+        function drawCard() {
+            if (!gameState.gameActive) {
+                document.getElementById('status').textContent = 'Сначала начните новую игру';
+                return;
+            }
+            if (gameState.reserveIndex >= gameState.reserve.length) {
+                if (gameState.reservePasses < 2) {
+                    gameState.reserve.reverse();
+                    gameState.reserveIndex = 0;
+                    gameState.reservePasses++;
+                    document.getElementById('status').textContent = `🔄 Круг ${gameState.reservePasses + 1}/3`;
+                    updateReserveDisplay();
+                } else {
+                    document.getElementById('status').textContent = '❌ Колода исчерпана (3 круга)';
+                }
+                return;
+            }
+            gameState.reserveIndex++;
+            updateReserveDisplay();
+            document.getElementById('status').textContent = 'Карта открыта · Выберите пару';
+        }
+
+        function updateReserveDisplay() {
+            const currentCardEl = document.getElementById('current-card');
+            const currentRankEl = document.getElementById('current-card-rank');
+            const passesIndicator = document.getElementById('passes-indicator');
+            
+            if (gameState.reserveIndex < gameState.reserve.length) {
+                const card = gameState.reserve[gameState.reserveIndex];
+                currentRankEl.textContent = `${card.rank}${card.suit}`;
+                currentRankEl.className = ['♥', '♦'].includes(card.suit) ? 'red' : '';
+                currentCardEl.classList.add('flipped');
+            } else {
+                currentRankEl.textContent = '-';
+                currentCardEl.classList.remove('flipped');
+            }
+            
+            passesIndicator.innerHTML = '';
+            for (let i = 0; i < 3; i++) {
+                const circle = document.createElement('span');
+                circle.className = 'pass-circle';
+                circle.classList.add(i < gameState.reservePasses ? 'used' : 'available');
+                passesIndicator.appendChild(circle);
+            }
+            
+            if (gameState.selectedCard && gameState.selectedCard.type === 'reserve') {
+                currentCardEl.classList.add('selected');
+            } else {
+                currentCardEl.classList.remove('selected');
+            }
+        }
+
+        function checkRowsCleared() {
+            let cleared = 0;
+            for (let row = 0; row < 7; row++) {
+                if (gameState.pyramid[row].every(slot => slot.removed)) cleared++;
+            }
+            gameState.rowsCleared = cleared;
+        }
+
+        function checkWin() {
+            const allRemoved = gameState.pyramid.every(row => row.every(slot => slot.removed));
+            if (allRemoved) {
+                document.getElementById('status').textContent = '🏆 ПОБЕДА! Все 7 рядов убраны!';
+                gameState.gameActive = false;
+                gameState.gameCompleted = true;
+            }
+        }
+
+        const PYRA_TEST = {
+            results: { passed: 0, failed: 0, total: 0 },
+            test_deck_size: function() {
+                this.results.total++;
+                const deck = createDeck();
+                const passed = deck.length === 36;
+                this.results.passed += passed ? 1 : 0;
+                console.log(`[${passed ? '✅' : '❌'}] Тест: Колода = 36 карт`);
+            },
+            run_all: function() {
+                this.test_deck_size();
+                alert('Тесты запущены (см. консоль)');
+            }
+        };
+        
+        window.PYRA_TEST = PYRA_TEST;
+        console.log('✅ PYRA загружена.');
+    </script>
+</body>
+</html>
